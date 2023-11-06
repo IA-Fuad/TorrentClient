@@ -1,0 +1,4 @@
+**/bin/
+**/obj/
+.vscode
+mono_cursh.*
