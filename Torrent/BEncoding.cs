@@ -11,7 +11,7 @@ public static class BEncoding
     private static readonly byte NumberEnd = Encoding.UTF8.GetBytes("e")[0];
     private static readonly byte ByteArrayDivider = Encoding.UTF8.GetBytes(":")[0];
 
-    private static object Decode(byte[] bytes)
+    public static object Decode(byte[] bytes)
     {
         IEnumerator<byte> enumerator = ((IEnumerable<byte>)bytes).GetEnumerator();
         enumerator.MoveNext();
@@ -36,7 +36,7 @@ public static class BEncoding
         return DecodeByteArray(enumerator);
     }
 
-    private static object DecodeFile(string path) 
+    public static object DecodeFile(string path) 
     {
         if (!File.Exists(path))
         {
@@ -133,5 +133,103 @@ public static class BEncoding
         }
         
         return dict;
+    }
+
+    public static byte[] Encode(object obj) 
+    {
+        MemoryStream buffer = new();
+        
+        EncodeNextObject(buffer, obj);
+
+        return buffer.ToArray();
+    }
+
+    public static void EncodeToFile(object obj, string path)
+    {
+        File.WriteAllBytes(path, Encode(obj));
+    }
+
+    private static void EncodeNextObject(MemoryStream buffer, object obj)
+    {
+        if (obj is byte[] v2)
+        {
+            EncodeByteArray(buffer, v2);
+        }
+        else if (obj is string v1) 
+        {
+            EncodeString(buffer, v1);
+        }
+        else if (obj is long v) 
+        {
+            EncodeNumber(buffer, v);
+        }
+        else if (obj is List<object> list)
+        {
+            EncodeList(buffer, list);
+        }
+        else if (obj is Dictionary<string, object> dict)
+        {
+            EncodeDictionary(buffer, dict);
+        }
+        else 
+        {
+            throw new Exception("Unable to encode type " + obj.GetType());
+        }
+    }
+
+    private static void EncodeDictionary(MemoryStream buffer, Dictionary<string, object> dict)
+    {
+        buffer.Append(DictionaryStart);
+
+        var sortedKeys = dict.Keys.ToList().OrderBy(k => BitConverter.ToString(Encoding.UTF8.GetBytes(k)));
+
+        foreach (var key in sortedKeys)
+        {
+            EncodeString(buffer, key);
+            EncodeNextObject(buffer, dict[key]);
+        }
+        buffer.Append(DictionaryEnd);
+    }
+
+    private static void EncodeList(MemoryStream buffer, List<object> items)
+    {
+        buffer.Append(ListStart);
+        foreach (var item in items)
+        {
+            EncodeNextObject(buffer, item);
+        }
+        buffer.Append(ListEnd);
+    }
+
+    private static void EncodeNumber(MemoryStream buffer, long number)
+    {
+        buffer.Append(NumberStart);
+        buffer.Append(Encoding.UTF8.GetBytes(number.ToString()));
+        buffer.Append(NumberEnd);
+    }
+
+    private static void EncodeString(MemoryStream buffer, string str)
+    {
+        EncodeByteArray(buffer, Encoding.UTF8.GetBytes(str));
+    }
+
+    private static void EncodeByteArray(MemoryStream buffer, byte[] bytes)
+    {
+        buffer.Append(Encoding.UTF8.GetBytes(bytes.Length.ToString()));
+        buffer.Append(ByteArrayDivider);
+        buffer.Append(bytes);
+    }
+}
+
+public static class MemoryStreamExtension
+{
+    public static void Append(this MemoryStream stream, byte value)
+    {
+        stream.WriteByte(value);
+    }
+
+    public static void Append(this MemoryStream stream, byte[] values)
+    {
+        stream.Write(values, 0, values.Length);
     }
 }
