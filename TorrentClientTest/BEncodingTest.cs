@@ -43,7 +43,7 @@ public class BEncodingTest
     public void GetDecodedObject_Dictionary_ReturnsDictionaryStringValues()
     {
         // Arrange 
-        var encodedBytes = GetBytes("d3:cow3:moo4:spam4:eggse");
+        var encodedBytes = GetBEncodedDictionaryString();
 
         // Act
         bool isDictionary = BEncoding.BEncoding.DecodeBEncodedBytes(encodedBytes).TryParseDictionary(out var dictionary);
@@ -70,7 +70,7 @@ public class BEncodingTest
     public void GetDecodedObject_Dictionary_ReturnsDictionaryListValues()
     {
         // Arrange
-        var encodedBytes = GetBytes("d3:cowl4:spam4:eggsee");
+        var encodedBytes = GetBEncodedDictionaryList();
 
         // Act
         bool isDict = BEncoding.BEncoding.DecodeBEncodedBytes(encodedBytes).TryParseDictionary(out var dictionary);
@@ -102,7 +102,7 @@ public class BEncodingTest
     public void GetDecodedObject_List_ReturnsList()
     {
         // Arrange
-        var encodedBytes = GetBytes("l4:spam4:eggse");
+        var encodedBytes = GetBEncodedList();
 
         // Act
         bool isList = BEncoding.BEncoding.DecodeBEncodedBytes(encodedBytes).TryParseList(out List<BDecodedObject> list);
@@ -122,6 +122,43 @@ public class BEncodingTest
                 Assert.True(isString);
                 Assert.Equal("eggs", str);
             });
+    }
+
+    [Fact]
+    public void GetBEncodedBytes_List_ReturnsBEncodedList()
+    {
+        var encodedBytes = GetBEncodedList();
+        var decodedObject = BEncoding.BEncoding.DecodeBEncodedBytes(encodedBytes);
+
+        var reEncodedBytes = BEncoding.BEncoding.GetBEncodedBytes(decodedObject);
+
+        Assert.Equal(encodedBytes, reEncodedBytes);
+    }
+
+    [Fact]
+    public void GetBEncodedBytes_Dictionary_ReturnsDictionarList()
+    {
+        var encodedBytes = GetBEncodedDictionaryList();
+        var decodedObject = BEncoding.BEncoding.DecodeBEncodedBytes(encodedBytes);
+
+        var reEncodedBytes = BEncoding.BEncoding.GetBEncodedBytes(decodedObject);
+
+        Assert.Equal(encodedBytes, reEncodedBytes);
+    }
+
+    private byte[] GetBEncodedList()
+    {
+        return GetBytes("l4:spam4:eggse");
+    }
+
+    private byte[] GetBEncodedDictionaryList()
+    {
+        return GetBytes("d3:cowl4:spam4:eggsee");
+    }
+
+    private byte[] GetBEncodedDictionaryString()
+    {
+        return GetBytes("d3:cow3:moo4:spam4:eggse");
     }
 
     private byte[] GetBytes(string encodedString)
