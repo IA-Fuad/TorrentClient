@@ -1,2 +1,8 @@
 ﻿// See https://aka.ms/new-console-template for more information
-Console.WriteLine("Hello, World!");
+using TorrentClient;
+
+string torrentFilePath = Console.ReadLine();
+
+Torrent torrent = new(torrentFilePath);
+
+Console.ReadKey();
