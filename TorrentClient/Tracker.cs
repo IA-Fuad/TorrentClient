@@ -36,8 +36,13 @@ public class Tracker
         List<Peer> peers = new();
         
         using HttpResponseMessage responseMessage = await _httpClient.GetAsync("?" + requestParameters.ToString());
-        string trackerResponse = await responseMessage.Content.ReadAsStringAsync();
-        var decodedResponse = BEncoding.BEncoding.DecodeBEncodedBytes(Encoding.UTF8.GetBytes(trackerResponse)); 
+        using Stream trackerResponseStream = await responseMessage.Content.ReadAsStreamAsync();
+        byte[] trackerResponse = new byte[trackerResponseStream.Length];
+        trackerResponseStream.Read(trackerResponse, 0, trackerResponse.Length);
+
+        // File.WriteAllBytes(@"F:\Projects\TorrentClient\InfoHash\trackerResponse1.txt", Encoding.UTF8.GetBytes(trackerResponse));
+
+        var decodedResponse = BEncoding.BEncoding.DecodeBEncodedBytes(trackerResponse); 
 
         if (decodedResponse.TryParseDictionary(out Dictionary<string, BEncoding.BDecodedObject> dict))
         {
@@ -74,7 +79,7 @@ public class Tracker
             }
             else if (peersValue.TryParseString(out string peerListString))
             {
-
+                // To do
             }
         }
     }

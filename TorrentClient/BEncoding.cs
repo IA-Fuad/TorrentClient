@@ -1,4 +1,4 @@
-using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Text;
 
 namespace BEncoding;
@@ -20,95 +20,72 @@ public static class BEncoding
 
     public static byte[] GetBEncodedBytes(BDecodedObject bDecodedObject)
     {
-        if (bDecodedObject.Type == BDecodedObjectType.Integer)
-        {
-            return GetBEncodedInteger(bDecodedObject);
-        }
-        if (bDecodedObject.Type == BDecodedObjectType.String)
-        {
-            return GetBEncodedString(bDecodedObject);
-        }
-        if (bDecodedObject.Type == BDecodedObjectType.List)
-        {
-            return GetBEncodedList(bDecodedObject);
-        }
-        return GetBEncodedDictionary(bDecodedObject);
+        MemoryStream ms = new();
+        EncodeDecodedObject(bDecodedObject, ms);
+
+        return ms.ToArray();
     }
 
-    private static byte[] GetBEncodedDictionary(BDecodedObject bDecodedObject)
+    private static void EncodeDecodedObject(BDecodedObject bDecodedObject, MemoryStream ms)
+    {
+        if (bDecodedObject.Type == BDecodedObjectType.Integer)
+        {
+            GetBEncodedInteger(bDecodedObject, ms);
+        }
+        else if (bDecodedObject.Type == BDecodedObjectType.String)
+        {
+            GetBEncodedString(bDecodedObject, ms);
+        }
+        else if (bDecodedObject.Type == BDecodedObjectType.List)
+        {
+            GetBEncodedList(bDecodedObject, ms);
+        }
+        else if (bDecodedObject.Type == BDecodedObjectType.Dictionary)
+        {
+            GetBEncodedDictionary(bDecodedObject, ms);
+        }
+    }
+
+    private static void GetBEncodedDictionary(BDecodedObject bDecodedObject, MemoryStream ms)
     {
         bDecodedObject.TryParseDictionary(out var dictValue);
-        List<byte[]> dictItems = new()
-        {
-            Encoding.UTF8.GetBytes("d")
-        };
+        ms.WriteByte(_dictionaryStart);
         
-        List<string> sortedDictKeys = dictValue.Keys.ToList();
-        sortedDictKeys.Sort((k1, k2) => 
-        {
-            var k1Bytes = Encoding.UTF8.GetBytes(k1);
-            var k2Bytes = Encoding.UTF8.GetBytes(k2);
-            bool swaped = false;
-
-            if (k1Bytes.Length > k2Bytes.Length)
-            {
-                (k1Bytes, k2Bytes) = (k2Bytes, k1Bytes);
-                swaped = true;
-            }
-            for (int i = 0; i < k1Bytes.Length; i++)
-            {
-                if (k1Bytes[i] < k2Bytes[i])
-                {
-                    return swaped ? 1 : -1;
-                }
-                if (k1Bytes[1] > k2Bytes[i])
-                {
-                    return swaped ? -1 : 1;
-                }
-            }
-            return swaped ? 1 : -1;
-        });
+        List<string> sortedDictKeys = dictValue.Keys.OrderBy(k => BitConverter.ToString(Encoding.UTF8.GetBytes(k))).ToList();
 
         foreach (string key in sortedDictKeys)
         {
-            byte[] bEncodedKey = GetBEncodedString(new BDecodedObject(BDecodedObjectType.String, key));
-            byte[] bEncodedValue = GetBEncodedBytes(dictValue[key]);
-            dictItems.Add(bEncodedKey);
-            dictItems.Add(bEncodedValue);
+            GetBEncodedString(new BDecodedObject(BDecodedObjectType.String, Encoding.UTF8.GetBytes(key)), ms);
+            EncodeDecodedObject(dictValue[key], ms);
         }
-        dictItems.Add(Encoding.UTF8.GetBytes("e"));
-
-        return dictItems.SelectMany(di => di).ToArray();
+        ms.WriteByte(_end);
     }
 
-    private static byte[] GetBEncodedList(BDecodedObject bDecodedObject)
+    private static void GetBEncodedList(BDecodedObject bDecodedObject, MemoryStream ms)
     {
         bDecodedObject.TryParseList(out var listValue);
-        List<byte[]> listItems = new()
-        {
-            Encoding.UTF8.GetBytes("l")
-        };
+        ms.WriteByte(_listStart);
         foreach (var item in listValue)
         {
-            listItems.Add(GetBEncodedBytes(item));
+            EncodeDecodedObject(item, ms);
         }
-        listItems.Add(Encoding.UTF8.GetBytes("e"));
-
-        return listItems.SelectMany(li => li).ToArray();
+        ms.WriteByte(_end);
     }
 
-    private static byte[] GetBEncodedString(BDecodedObject bDecodedObject)
+    private static void GetBEncodedString(BDecodedObject bDecodedObject, MemoryStream ms)
     {
-        bDecodedObject.TryParseString(out string stringValue);
-        string bEncodedString = stringValue.Length.ToString() + ":" + stringValue;
-        return Encoding.UTF8.GetBytes(bEncodedString);
+        bDecodedObject.TryParseStringBytes(out byte[] byteString);
+        ms.Write(Encoding.UTF8.GetBytes(byteString.Length.ToString()));
+        ms.WriteByte(Convert.ToByte(':'));
+        ms.Write(byteString);
     }
 
-    private static byte[] GetBEncodedInteger(BDecodedObject bDecodedObject)
+    private static void GetBEncodedInteger(BDecodedObject bDecodedObject, MemoryStream ms)
     {
-        bDecodedObject.TryParseInteger(out int intValue);
-        string bEncodedInt = "i" + intValue.ToString() + "e";
-        return Encoding.UTF8.GetBytes(bEncodedInt);
+        bDecodedObject.TryParseIntegerLong(out long intValue);
+        ms.WriteByte(_integerStart);
+        ms.Write(Encoding.UTF8.GetBytes(intValue.ToString()));
+        ms.WriteByte(_end);
     }
 
     private static BDecodedObject GetDecodedObject(IEnumerator<byte> enumerator)
@@ -130,7 +107,7 @@ public static class BEncoding
 
     private static BDecodedObject DecodeByteString(IEnumerator<byte> enumerator)
     {
-        int len = ParseInt(enumerator);
+        long len = ParseInt(enumerator);
         enumerator.MoveNext();
 
         byte[] byteString = new byte[len];
@@ -141,42 +118,38 @@ public static class BEncoding
             enumerator.MoveNext();
         }
 
-        return new BDecodedObject(BDecodedObjectType.String, Encoding.UTF8.GetString(byteString));
+        return new BDecodedObject(BDecodedObjectType.String, byteString);
     }
 
-    private static int ParseInt(IEnumerator<byte> enumerator)
+    private static long ParseInt(IEnumerator<byte> enumerator)
     {
-        int symbol = 1;
-        char firstChar = Convert.ToChar(enumerator.Current);
-        if (firstChar == '-')
+        if (!char.IsDigit(Convert.ToChar(enumerator.Current)))
         {
-            symbol = -1;
-            enumerator.MoveNext();
+            Debugger.Break();
         }
-        int num = Convert.ToChar(enumerator.Current) - '0';
+        List<byte> numberBytes = new() { enumerator.Current };
 
         while (enumerator.MoveNext())
         {
-            char currentChar = Convert.ToChar(enumerator.Current);
-            if (!char.IsDigit(currentChar))
+            if (!char.IsDigit(Convert.ToChar(enumerator.Current)))
             {
                 break;
             }
-            num = (num * 10) + (currentChar - '0');
+            numberBytes.Add(enumerator.Current);
         }
 
-        return num * symbol;
+        string numString = Encoding.UTF8.GetString(numberBytes.ToArray());
+        return long.Parse(numString);
     }
 
     private static BDecodedObject DecodeDictionary(IEnumerator<byte> enumerator)
     {
         Dictionary<string, BDecodedObject> decodedDict = new();
-        
-        bool isValid = enumerator.MoveNext();
+
+        enumerator.MoveNext();
         while (enumerator.Current != _end)
         {
             DecodeByteString(enumerator).TryParseString(out string key);
-
             var value = GetDecodedObject(enumerator);
             
             decodedDict.Add(key, value);
@@ -203,7 +176,7 @@ public static class BEncoding
     private static BDecodedObject DecodeInteger(IEnumerator<byte> enumerator)
     {
         enumerator.MoveNext();
-        int intValue = ParseInt(enumerator);
+        long longIntValue = ParseInt(enumerator);
         
         if (enumerator.Current != _end)
         {
@@ -211,6 +184,11 @@ public static class BEncoding
         }
         enumerator.MoveNext();
         
-        return new BDecodedObject(BDecodedObjectType.Integer, intValue);
+        if (longIntValue > int.MaxValue)
+        {
+            return new(BDecodedObjectType.Integer, longIntValue);
+        }
+        int intValue = (int)longIntValue;
+        return new(BDecodedObjectType.Integer, intValue);
     }
 }

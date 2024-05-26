@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace BEncoding;
 
 public enum BDecodedObjectType 
@@ -24,11 +26,23 @@ public class BDecodedObject
     {
         if (Type == BDecodedObjectType.String)
         {
-            byteString = DecodedObject as string;
+            byteString = Encoding.UTF8.GetString(DecodedObject as byte[]);
             return true;
         }
         
         byteString = null;
+        return false;
+    }
+
+    public bool TryParseStringBytes(out byte[] byteString)
+    {
+        byteString = null;
+
+        if (Type == BDecodedObjectType.String)
+        {
+            byteString = DecodedObject as byte[];
+            return true;
+        }
         return false;
     }
 
@@ -40,6 +54,24 @@ public class BDecodedObject
             if (Type == BDecodedObjectType.Integer)
             {
                 intValue = (int)DecodedObject;
+                return true;
+            } 
+            return false;
+        }
+        catch 
+        {
+            return false;
+        }
+    }
+
+    public bool TryParseIntegerLong(out long intValue)
+    {
+        intValue = 0;
+        try 
+        {
+            if (Type == BDecodedObjectType.Integer)
+            {
+                intValue = long.Parse(DecodedObject.ToString());
                 return true;
             } 
             return false;

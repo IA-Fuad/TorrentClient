@@ -2,7 +2,7 @@ namespace TorrentClient;
 
 public class TorrentMetaDataInfo
 {
-    public int PieceLength { get; private set; }
+    public long PieceLength { get; private set; }
     public string Pieces { get; private set; }
     public bool? Private { get; private set; }
     public string FileName { get; private set; }
@@ -16,7 +16,7 @@ public class TorrentMetaDataInfo
         }
 
         if (!infoDict.TryGetValue("piece length", out var pieceLenValue)
-            || !pieceLenValue.TryParseInteger(out int pieceLen))
+            || !pieceLenValue.TryParseIntegerLong(out long pieceLen))
         {
             throw new InvalidDataException("info piece length does not have a valid value");
         }
@@ -71,7 +71,7 @@ public class TorrentMetaDataInfo
         List<string> path;
 
         if (!fileInfoDict.TryGetValue("length", out var fileLenValue)
-            || !fileLenValue.TryParseInteger(out int fileLen))
+            || !fileLenValue.TryParseIntegerLong(out long fileLen))
         {
             throw new InvalidDataException("file length does not have a valid value"); 
         }

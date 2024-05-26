@@ -3,6 +3,7 @@ namespace TorrentClient;
 public class TorrentMetaData
 {
     public TorrentMetaDataInfo Info { get; private set; }
+    public byte[] BEncodedInfoBytes { get; private set; }
     public string Announce { get; private set; }
     public long? CreationDate { get; private set; }
     public string? Comment { get; private set; }
@@ -37,5 +38,7 @@ public class TorrentMetaData
 
         Announce = announceUrl;
         Info = new(info);
+        BEncodedInfoBytes = BEncoding.BEncoding.GetBEncodedBytes(info);
+        Console.WriteLine(BEncoding.BEncoding.DecodeBEncodedBytes(BEncodedInfoBytes));
     }
 }

@@ -146,6 +146,34 @@ public class BEncodingTest
         Assert.Equal(encodedBytes, reEncodedBytes);
     }
 
+    [Fact]
+    public void GetBEncodedBytes_Dictionary_ReturnsDictionaryStrings()
+    {
+        var encodedBytes = GetBEncodedDictionaryString();
+        var decodedObject = BEncoding.BEncoding.DecodeBEncodedBytes(encodedBytes);
+
+        var reEncodedBytes = BEncoding.BEncoding.GetBEncodedBytes(decodedObject);
+
+        Assert.Equal(encodedBytes, reEncodedBytes);
+    }
+
+
+    //[Fact]
+    //public void GetBEncodedBytes_TorrentInfo_HashOk()
+    //{
+    //    string torrentFilePath = "/home/ifuad/Downloads/ubuntu-23.10.1-desktop-amd64.iso.torrent";
+    //    byte[] torrentMetaDataBytes = File.ReadAllBytes(torrentFilePath);
+
+    //    for (int i = 0; i < torrentMetaDataBytes.Length; i++)
+    //    {
+    //        if (torrentMetaDataBytes[i] == (byte)'i' && torrentMetaDataBytes[i+1] == (byte)'n' 
+    //            && torrentMetaDataBytes[i+2] == (byte)'f' && torrentMetaDataBytes[i+3] == (byte)'o')
+    //        {
+    //            i += 3;
+    //        }
+    //    }
+    //}
+
     private byte[] GetBEncodedList()
     {
         return GetBytes("l4:spam4:eggse");

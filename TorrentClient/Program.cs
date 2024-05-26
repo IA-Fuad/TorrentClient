@@ -1,8 +1,12 @@
-﻿// See https://aka.ms/new-console-template for more information
-using TorrentClient;
+﻿using TorrentClient;
 
-string torrentFilePath = Console.ReadLine();
+string torrentFilePath = "F:\\Projects\\TorrentClient\\ubuntu-24.04-desktop-amd64.iso.torrent";
 
-Torrent torrent = new(torrentFilePath);
+byte[] torrentMetaDataBytes = File.ReadAllBytes(torrentFilePath);
+TorrentMetaData torrentMetaData = new(torrentMetaDataBytes);
+Tracker tracker = new(torrentMetaData.Announce);
 
-Console.ReadKey();
+TrackerRequestParameters trackerRequestParameters = new(torrentMetaData.BEncodedInfoBytes);
+
+Torrent torrent = new(torrentMetaData, tracker, trackerRequestParameters);
+await torrent.StartDownload();
