@@ -1,6 +1,7 @@
 using System.Text;
 using BEncoding;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Adapter;
+using TorrentClient;
 
 namespace TorrentClientTest;
 
@@ -158,21 +159,16 @@ public class BEncodingTest
     }
 
 
-    //[Fact]
-    //public void GetBEncodedBytes_TorrentInfo_HashOk()
-    //{
-    //    string torrentFilePath = "/home/ifuad/Downloads/ubuntu-23.10.1-desktop-amd64.iso.torrent";
-    //    byte[] torrentMetaDataBytes = File.ReadAllBytes(torrentFilePath);
+    [Fact]
+    public void GetBEncodedBytes_TorrentInfo_HashOk()
+    {
+        string torrentFilePath = @"F:\Projects\TorrentClient\TorrentClientTest\ubuntu-24.04-desktop-amd64.iso.torrent";
+        byte[] torrentMetaDataBytes = File.ReadAllBytes(torrentFilePath);
+        TorrentMetaData torrentMetaData = new(torrentMetaDataBytes);
+        TrackerRequestParameters trackerRequestParameters = new(torrentMetaData.BEncodedInfoBytes);
 
-    //    for (int i = 0; i < torrentMetaDataBytes.Length; i++)
-    //    {
-    //        if (torrentMetaDataBytes[i] == (byte)'i' && torrentMetaDataBytes[i+1] == (byte)'n' 
-    //            && torrentMetaDataBytes[i+2] == (byte)'f' && torrentMetaDataBytes[i+3] == (byte)'o')
-    //        {
-    //            i += 3;
-    //        }
-    //    }
-    //}
+        Assert.Equal(@"*%a4%f5%a7%e2%09%e5K2%80%3dCg%09q%c4%c8%ca%aa%05", trackerRequestParameters.Info_Hash);
+    }
 
     private byte[] GetBEncodedList()
     {

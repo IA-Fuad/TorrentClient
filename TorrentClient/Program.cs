@@ -6,7 +6,9 @@ byte[] torrentMetaDataBytes = File.ReadAllBytes(torrentFilePath);
 TorrentMetaData torrentMetaData = new(torrentMetaDataBytes);
 Tracker tracker = new(torrentMetaData.Announce);
 
-TrackerRequestParameters trackerRequestParameters = new(torrentMetaData.BEncodedInfoBytes);
+TrackerRequestParameters trackerRequestParameters = new(torrentMetaData.BEncodedInfoBytes, 6881);
 
 Torrent torrent = new(torrentMetaData, tracker, trackerRequestParameters);
 await torrent.StartDownload();
+
+Console.ReadKey();

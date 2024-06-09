@@ -14,7 +14,9 @@ public enum TrackerEvent
 
 public class TrackerRequestParameters
 {
+    public byte[] InfoHashBytes { get; private set; }
     public string Info_Hash { get; private set; }
+    public byte[] PeerIdBytes { get; private set; }
     public string Peer_Id { get; private set; }
     public int Port { get; private set; }
     public long Uploaded { get; set; }
@@ -27,16 +29,17 @@ public class TrackerRequestParameters
     public string? Key { get; private set; }
     public string? Trackerid { get; private set; }
 
-    public TrackerRequestParameters(byte[] info)
+    public TrackerRequestParameters(byte[] info, int port)
     {
-        var hash = SHA1.HashData(info);
-        Info_Hash = HttpUtility.UrlEncode(hash);
+        InfoHashBytes = SHA1.HashData(info);
+        Info_Hash = HttpUtility.UrlEncode(InfoHashBytes);
         List<byte> peerId = Guid.NewGuid().ToByteArray().ToList();
         peerId.AddRange(Guid.NewGuid().ToByteArray().ToList());
         peerId = peerId.SkipLast(peerId.Count - 20).ToList();
 
-        Peer_Id = HttpUtility.UrlEncode(peerId.ToArray());
-        Port = 6881;
+        PeerIdBytes = peerId.ToArray();
+        Peer_Id = HttpUtility.UrlEncode(PeerIdBytes);
+        Port = port;
         Event = TrackerEvent.Started;
     }
 
